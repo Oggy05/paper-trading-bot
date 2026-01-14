@@ -1,5 +1,5 @@
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, time as dtime
 import pytz
 import os
 import sys
@@ -7,13 +7,20 @@ import sys
 # =====================
 # CONFIG
 # =====================
-SYMBOL = "RELIANCE.NS"
-TARGET_PCT = 0.0075   # 0.75%
-STOP_PCT = 0.005      # 0.5%
+SYMBOL = "AAPL"          # US stock (AAPL, MSFT, NVDA)
+TARGET_PCT = 0.0075      # 0.75%
+STOP_PCT = 0.005         # 0.5%
 LOG_FILE = "trade_log.txt"
 STATE_FILE = "state.txt"
 
-ist = pytz.timezone("Asia/Kolkata")
+et = pytz.timezone("US/Eastern")
+
+# =====================
+# MARKET HOURS (US)
+# =====================
+def market_is_open():
+    now = datetime.now(et).time()
+    return dtime(9, 30) <= now <= dtime(16, 0)
 
 def log(msg):
     with open(LOG_FILE, "a") as f:
@@ -30,6 +37,12 @@ def load_entry():
         return float(f.read())
 
 # =====================
+# SKIP IF MARKET CLOSED
+# =====================
+if not market_is_open():
+    sys.exit()
+
+# =====================
 # FETCH PRICE
 # =====================
 data = yf.Ticker(SYMBOL).history(period="1d", interval="1m")
@@ -37,7 +50,7 @@ if data.empty:
     sys.exit()
 
 price = float(data["Close"].iloc[-1])
-now = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
+now = datetime.now(et).strftime("%Y-%m-%d %H:%M:%S ET")
 
 entry = load_entry()
 
